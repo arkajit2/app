@@ -2,8 +2,8 @@ import streamlit as st
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
 
-st.set_page_config(page_title="Fraoula Chatbot", page_icon="🤖")
-st.title("🤖 Fraoula Chatbot with DialoGPT")
+st.set_page_config(page_title="Fraoula Chatbot", page_icon="")
+st.title("Fraoula Chatbot")
 
 @st.cache_resource(show_spinner=False)
 def load_model():
