@@ -1,3 +1,6 @@
-streamlit
-transformers
-torch
+streamlit==1.35.0
+transformers==4.40.0
+torch>=2.1.0
+accelerate==0.30.0
+bitsandbytes==0.42.0      # Optional for quantized models (if using LLaMA 3 in 4-bit)
+xformers==0.0.25           # Optional for faster generation
