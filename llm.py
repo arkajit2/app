@@ -1,53 +1,70 @@
 import streamlit as st
-from transformers import pipeline, set_seed
+from transformers import AutoModelForCausalLM, AutoTokenizer
+import torch
 
-st.set_page_config(page_title="Fraoula LLM Chatbot", page_icon="🤖")
+st.set_page_config(page_title="Fraoula Chatbot", page_icon="🤖")
+st.title("🤖 Fraoula Chatbot with DialoGPT")
 
-st.title(" Fraoula Local LLM Chatbot")
+@st.cache_resource(show_spinner=False)
+def load_model():
+    tokenizer = AutoTokenizer.from_pretrained("microsoft/DialoGPT-small")
+    model = AutoModelForCausalLM.from_pretrained("microsoft/DialoGPT-small")
+    return tokenizer, model
 
-# Initialize the text generation pipeline once, cached for performance
-@st.cache_resource
-def load_generator():
-    set_seed(42)
-    return pipeline('text-generation', model='distilgpt2')
-
-generator = load_generator()
+tokenizer, model = load_model()
 
 # Initialize chat history in session state
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
+if "chat_history_ids" not in st.session_state:
+    st.session_state.chat_history_ids = None
+if "step" not in st.session_state:
+    st.session_state.step = 0
 
-def generate_response(prompt):
-    # Generate text continuation from the model
-    output = generator(prompt, max_length=100, num_return_sequences=1)
-    # Extract generated text (skip the prompt part)
-    generated_text = output[0]['generated_text'][len(prompt):].strip()
-    return generated_text
+def generate_response(user_input):
+    # Encode user input and add end of string token
+    new_input_ids = tokenizer.encode(user_input + tokenizer.eos_token, return_tensors='pt')
 
-# User input
-user_input = st.text_input("You:", placeholder="Type your message here...")
+    # Append new user input tokens to chat history (if exists)
+    if st.session_state.chat_history_ids is not None:
+        bot_input_ids = torch.cat([st.session_state.chat_history_ids, new_input_ids], dim=-1)
+    else:
+        bot_input_ids = new_input_ids
+
+    # Generate response with model
+    chat_history_ids = model.generate(
+        bot_input_ids,
+        max_length=1000,
+        pad_token_id=tokenizer.eos_token_id,
+        no_repeat_ngram_size=3,
+        do_sample=True,
+        top_k=50,
+        top_p=0.95,
+        temperature=0.75,
+    )
+
+    # Update chat history
+    st.session_state.chat_history_ids = chat_history_ids
+
+    # Decode bot response
+    response = tokenizer.decode(chat_history_ids[:, bot_input_ids.shape[-1]:][0], skip_special_tokens=True)
+    return response
+
+# Streamlit UI
+
+user_input = st.text_input("You:", key="input_text", placeholder="Type your message here and press Enter")
 
 if user_input:
-    # Add user message to chat history
-    st.session_state.chat_history.append({"role": "user", "content": user_input})
-    
-    # Prepare context for the model by concatenating previous conversation (last 3 exchanges max)
-    context = ""
-    # We'll keep max 3 previous messages (user + bot) for context
-    for chat in st.session_state.chat_history[-6:]:
-        role = "User" if chat["role"] == "user" else "Bot"
-        context += f"{role}: {chat['content']}\n"
-    context += "Bot: "
-    
-    # Generate bot response
-    bot_response = generate_response(context)
-    
-    # Add bot response to chat history
-    st.session_state.chat_history.append({"role": "bot", "content": bot_response})
-    
+    response = generate_response(user_input)
+    st.session_state.step += 1
+
+    # Display chat messages
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+
+    st.session_state.messages.append({"user": user_input, "bot": response})
+
 # Display chat history
-for chat in st.session_state.chat_history:
-    if chat["role"] == "user":
-        st.markdown(f"**You:** {chat['content']}")
-    else:
-        st.markdown(f"**Bot:** {chat['content']}")
+if "messages" in st.session_state:
+    for chat in st.session_state.messages:
+        st.markdown(f"**You:** {chat['user']}")
+        st.markdown(f"**Bot:** {chat['bot']}")
+
