@@ -1,6 +1,2 @@
 streamlit
-transformers
-torch
-accelerate
-scipy
-sentencepiece
+llama-cpp-python
