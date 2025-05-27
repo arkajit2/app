@@ -8,43 +8,103 @@ API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-fl
 HEADERS = {"Content-Type": "application/json"}
 
 # --- Dark Violet Theme Colors ---
-PRIMARY_COLOR = "#6A0DAD"        # Rich Deep Violet
-SECONDARY_COLOR = "#9B59B6"      # Soft Violet Accent
-BACKGROUND_COLOR = "#1A0033"     # Very Dark Violet / Near Black
-TEXT_COLOR = "#FFFFFF"           # Pure White for strong contrast
-INPUT_BG_COLOR = "#2E004F"       # Dark Violet input background
-BORDER_COLOR = "#7D4B9E"         # Violet border for inputs/buttons
-BOT_BG_COLOR = "#3B0070"         # Darker violet for bot messages
-USER_BG_COLOR = "#7B3FBF"        # Slightly lighter violet for user messages
+PRIMARY_COLOR = "#6A0DAD"        # Deep Violet
+SECONDARY_COLOR = "#9B59B6"      # Lighter Violet Accent
+BACKGROUND_COLOR = "#1A0033"     # Dark Violet almost black
+TEXT_COLOR = "#FFFFFF"           # White text
+INPUT_BG_COLOR = "#2E004F"       # Dark violet input background
+BORDER_COLOR = "#7D4B9E"         # Violet border
+BOT_BG_COLOR = "#3B0070"         # Bot message bubble
+USER_BG_COLOR = "#7B3FBF"        # User message bubble
 
-# --- Streamlit App Styling ---
+# --- Page Config ---
 st.set_page_config(page_title="Chatbot with Gemini API", layout="wide", page_icon="🤖")
 
-st.markdown(
-    f"""
-    <style>
+# --- CSS Styling ---
+st.markdown(f"""
+<style>
+    /* App background and font */
     .stApp {{
         background-color: {BACKGROUND_COLOR};
         color: {TEXT_COLOR};
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
     }}
 
-    .stTextInput > div > div > input {{
+    /* Chat container: flex-grow to fill, scrollable */
+    #chat-container {{
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 1rem 2rem;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        scroll-behavior: smooth;
+        max-height: 75vh;
+    }}
+
+    /* User message bubble (right aligned) */
+    .user-message {{
+        align-self: flex-end;
+        background-color: {USER_BG_COLOR};
+        color: {TEXT_COLOR};
+        padding: 14px 22px;
+        border-radius: 20px 20px 0 20px;
+        max-width: 70%;
+        font-size: 16px;
+        line-height: 1.4;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }}
+
+    /* Bot message bubble (left aligned) */
+    .bot-message {{
+        align-self: flex-start;
+        background-color: {BOT_BG_COLOR};
+        color: {TEXT_COLOR};
+        padding: 14px 22px;
+        border-radius: 20px 20px 20px 0;
+        max-width: 70%;
+        font-size: 16px;
+        line-height: 1.4;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }}
+
+    /* Input container fixed below chat */
+    #input-container {{
+        padding: 10px 2rem;
+        background-color: {BACKGROUND_COLOR};
+        border-top: 1px solid {BORDER_COLOR};
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }}
+
+    /* Text input style */
+    #user-input {{
+        flex-grow: 1;
         background-color: {INPUT_BG_COLOR} !important;
         color: {TEXT_COLOR} !important;
         border: 2px solid {BORDER_COLOR} !important;
         border-radius: 12px !important;
-        padding: 12px !important;
+        padding: 12px 16px !important;
         font-size: 16px !important;
+        outline: none !important;
         transition: border-color 0.3s ease;
     }}
-    .stTextInput > div > div > input:focus {{
+
+    #user-input:focus {{
         border-color: {PRIMARY_COLOR} !important;
-        outline: none !important;
         box-shadow: 0 0 8px {PRIMARY_COLOR};
     }}
 
-    .stButton > button {{
+    /* Send button style */
+    #send-button {{
         background-color: {PRIMARY_COLOR} !important;
         color: {TEXT_COLOR} !important;
         border-radius: 12px !important;
@@ -55,55 +115,22 @@ st.markdown(
         cursor: pointer;
         transition: background-color 0.3s ease;
     }}
-    .stButton > button:hover {{
+
+    #send-button:hover {{
         background-color: {SECONDARY_COLOR} !important;
     }}
 
-    .user-message {{
-        background-color: {USER_BG_COLOR};
-        color: {TEXT_COLOR};
-        padding: 14px 20px;
-        border-radius: 20px 20px 0 20px;
-        margin: 6px 0 6px 30%;
-        max-width: 70%;
-        font-size: 16px;
-        line-height: 1.4;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.5);
-        text-align: right;
-        word-wrap: break-word;
-    }}
-    .bot-message {{
-        background-color: {BOT_BG_COLOR};
-        color: {TEXT_COLOR};
-        padding: 14px 20px;
-        border-radius: 20px 20px 20px 0;
-        margin: 6px 30% 6px 0;
-        max-width: 70%;
-        font-size: 16px;
-        line-height: 1.4;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.5);
-        text-align: left;
-        word-wrap: break-word;
-    }}
-
-    .chat-container {{
-        max-height: 70vh;
-        overflow-y: auto;
-        padding-right: 10px;
-        scrollbar-width: thin;
-        scrollbar-color: {PRIMARY_COLOR} transparent;
-    }}
-    .chat-container::-webkit-scrollbar {{
+    /* Scrollbar styling */
+    #chat-container::-webkit-scrollbar {{
         width: 8px;
     }}
-    .chat-container::-webkit-scrollbar-thumb {{
+    #chat-container::-webkit-scrollbar-thumb {{
         background-color: {PRIMARY_COLOR};
         border-radius: 10px;
     }}
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+</style>
+""", unsafe_allow_html=True)
+
 
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
@@ -142,24 +169,43 @@ def get_gemini_response(message, history):
     except KeyError as e:
         return f"Error parsing Gemini response (missing key): {e} - Response: {response.text}"
 
-# --- INPUT FORM first ---
-with st.form(key="input_form", clear_on_submit=True):
-    user_input = st.text_input("You:", placeholder="Type your message...")
-    submit = st.form_submit_button("Send")
 
-    if submit and user_input:
+# --- Main layout ---
+# Use a form to enable Enter key submission and clearing input after send
+with st.form(key="chat_form", clear_on_submit=True):
+    # Chat display container
+    chat_container = st.container()
+    
+    # Input and button fixed below chat
+    col1, col2 = st.columns([8, 1])
+    with col1:
+        user_input = st.text_input("You:", key="user-input", placeholder="Type your message here...", label_visibility="collapsed")
+    with col2:
+        send_button = st.form_submit_button("Send", help="Press Enter to send")
+
+    # Display chat messages below input (outside the form)
+    with chat_container:
+        for msg in st.session_state.chat_history:
+            if msg["role"] == "user":
+                st.markdown(f'<div class="user-message">{msg["content"]}</div>', unsafe_allow_html=True)
+            else:
+                st.markdown(f'<div class="bot-message">{msg["content"]}</div>', unsafe_allow_html=True)
+
+    # Process input on submit
+    if send_button and user_input:
         st.session_state.chat_history.append({"role": "user", "content": user_input})
         with st.spinner("Thinking..."):
             reply = get_gemini_response(user_input, st.session_state.chat_history)
         st.session_state.chat_history.append({"role": "assistant", "content": reply})
+        # Scroll to bottom will happen naturally on rerun
 
-# --- THEN DISPLAY CHAT HISTORY BELOW FORM ---
-chat_container = st.container()
-with chat_container:
-    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-    for msg in st.session_state.chat_history:
-        if msg["role"] == "user":
-            st.markdown(f'<div class="user-message">{msg["content"]}</div>', unsafe_allow_html=True)
-        else:
-            st.markdown(f'<div class="bot-message">{msg["content"]}</div>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+# Scroll chat to bottom on every rerun using JS hack
+scroll_script = """
+<script>
+const chatContainer = window.parent.document.querySelector('#chat-container div[role="list"]') || window.parent.document.querySelector('#chat-container');
+if(chatContainer) {
+  chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+</script>
+"""
+st.markdown(scroll_script, unsafe_allow_html=True)
