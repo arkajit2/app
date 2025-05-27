@@ -1,5 +1,2 @@
 streamlit
-transformers
-torch
-huggingface_hub
-llama-cpp-python
+requests
