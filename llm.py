@@ -7,13 +7,11 @@ API_KEY = st.secrets["GEMINI_API_KEY"]
 API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 HEADERS = {"Content-Type": "application/json"}
 
-# --- Your original colors ---
 PRIMARY_COLOR = "#9400D3"  # Deep Violet
 SECONDARY_COLOR = "#C779D9"  # Light Violet
 BACKGROUND_COLOR = "#F3E5F5"  # Very Light Violet
-TEXT_COLOR = "#333333"  # Dark Gray for readability
+TEXT_COLOR = "#333333"  # Dark Gray
 
-# --- Your original styling ---
 st.set_page_config(page_title="Chatbot with Gemini API", layout="wide")
 
 st.markdown(
@@ -56,7 +54,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- Initialize chat history ---
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
@@ -94,34 +91,28 @@ def get_gemini_response(message, history):
     except KeyError as e:
         return f"Error parsing Gemini response (missing key): {e} - Response: {response.text}"
 
-# --- Display chat history ---
-chat_container = st.container()
-input_container = st.container()
+# --- Input form ---
+with st.form("chat_form", clear_on_submit=True):
+    col1, col2 = st.columns([8, 2])
+    with col1:
+        user_input = st.text_input("You:", placeholder="Type your message...")
+    with col2:
+        send_button = st.form_submit_button("Send")
 
+if send_button and user_input.strip():
+    user_message = user_input.strip()
+    st.session_state.chat_history.append({"role": "user", "content": user_message})
+
+    with st.spinner("Thinking..."):
+        bot_reply = get_gemini_response(user_message, st.session_state.chat_history)
+
+    st.session_state.chat_history.append({"role": "assistant", "content": bot_reply})
+
+# --- Display chat AFTER all appends ---
+chat_container = st.container()
 with chat_container:
     for msg in st.session_state.chat_history:
         if msg["role"] == "user":
             st.markdown(f'<div class="user-message">{msg["content"]}</div>', unsafe_allow_html=True)
         else:
             st.markdown(f'<div class="bot-message">{msg["content"]}</div>', unsafe_allow_html=True)
-
-with input_container:
-    # Use form to support Enter key submit
-    with st.form("chat_form", clear_on_submit=True):
-        col1, col2 = st.columns([8, 2])
-        with col1:
-            user_input = st.text_input("You:", placeholder="Type your message...")
-        with col2:
-            send_button = st.form_submit_button("Send")
-
-        if send_button and user_input.strip():
-            msg = user_input.strip()
-
-            # Append user message before API call
-            st.session_state.chat_history.append({"role": "user", "content": msg})
-
-            with st.spinner("Thinking..."):
-                reply = get_gemini_response(msg, st.session_state.chat_history)
-
-            # Append bot reply after API call
-            st.session_state.chat_history.append({"role": "assistant", "content": reply})
