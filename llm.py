@@ -114,26 +114,6 @@ st.markdown(
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-# Chat container
-chat_container = st.container()
-with chat_container:
-    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-    for msg in st.session_state.chat_history:
-        if msg["role"] == "user":
-            st.markdown(f'<div class="user-message">{msg["content"]}</div>', unsafe_allow_html=True)
-        else:
-            st.markdown(f'<div class="bot-message">{msg["content"]}</div>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# Input container
-input_container = st.container()
-with input_container:
-    cols = st.columns([8, 2])
-    with cols[0]:
-        user_input = st.text_input("You:", placeholder="Type your message...", key="input")
-    with cols[1]:
-        send_button = st.button("Send")
-
 def get_gemini_response(message, history):
     gemini_history = []
     for msg in history:
@@ -168,11 +148,26 @@ def get_gemini_response(message, history):
     except KeyError as e:
         return f"Error parsing Gemini response (missing key): {e} - Response: {response.text}"
 
-# When user clicks Send
-if send_button and user_input:
-    st.session_state.chat_history.append({"role": "user", "content": user_input})
-    with st.spinner("Thinking..."):
-        reply = get_gemini_response(user_input, st.session_state.chat_history)
-    st.session_state.chat_history.append({"role": "assistant", "content": reply})
+# Chat display container
+chat_container = st.container()
+with chat_container:
+    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+    for msg in st.session_state.chat_history:
+        if msg["role"] == "user":
+            st.markdown(f'<div class="user-message">{msg["content"]}</div>', unsafe_allow_html=True)
+        else:
+            st.markdown(f'<div class="bot-message">{msg["content"]}</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    st.experimental_rerun()
+# Input form (handles Enter key submit)
+with st.form(key="input_form", clear_on_submit=True):
+    user_input = st.text_input("You:", placeholder="Type your message...")
+    submit = st.form_submit_button("Send")
+
+    if submit and user_input:
+        st.session_state.chat_history.append({"role": "user", "content": user_input})
+        with st.spinner("Thinking..."):
+            reply = get_gemini_response(user_input, st.session_state.chat_history)
+        st.session_state.chat_history.append({"role": "assistant", "content": reply})
+        # No need to call experimental_rerun; Streamlit will rerun automatically
+
