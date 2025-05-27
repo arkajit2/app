@@ -7,51 +7,111 @@ API_KEY = st.secrets["GEMINI_API_KEY"]
 API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 HEADERS = {"Content-Type": "application/json"}
 
-# --- Custom Color Theme (Fraoula Violet) ---
-# You can adjust these colors to fine-tune the appearance
-PRIMARY_COLOR = "#9400D3"  # Deep Violet
-SECONDARY_COLOR = "#C779D9"  # Light Violet
-BACKGROUND_COLOR = "#F3E5F5"  # Very Light Violet
-TEXT_COLOR = "#333333"  # Dark Gray for readability
+# --- Dark Violet Theme Colors ---
+PRIMARY_COLOR = "#6A0DAD"        # Rich Deep Violet
+SECONDARY_COLOR = "#9B59B6"      # Soft Violet Accent
+BACKGROUND_COLOR = "#1A0033"     # Very Dark Violet / Near Black
+TEXT_COLOR = "#FFFFFF"           # Pure White for strong contrast
+INPUT_BG_COLOR = "#2E004F"       # Dark Violet input background
+BORDER_COLOR = "#7D4B9E"         # Violet border for inputs/buttons
+BOT_BG_COLOR = "#3B0070"         # Darker violet for bot messages
+USER_BG_COLOR = "#7B3FBF"        # Slightly lighter violet for user messages
 
 # --- Streamlit App Styling ---
-st.set_page_config(page_title="Chatbot with Gemini API", layout="wide")
+st.set_page_config(page_title="Chatbot with Gemini API", layout="wide", page_icon="🤖")
 
-# Apply custom theme
+# Apply custom dark theme styles
 st.markdown(
     f"""
     <style>
+    /* Main background */
     .stApp {{
         background-color: {BACKGROUND_COLOR};
+        color: {TEXT_COLOR};
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }}
+
+    /* Text input styling */
     .stTextInput > div > div > input {{
-        border-color: {PRIMARY_COLOR};
-        border-width: 2px;
-        border-radius: 8px;
-        padding: 10px;
+        background-color: {INPUT_BG_COLOR} !important;
+        color: {TEXT_COLOR} !important;
+        border: 2px solid {BORDER_COLOR} !important;
+        border-radius: 12px !important;
+        padding: 12px !important;
+        font-size: 16px !important;
+        transition: border-color 0.3s ease;
     }}
+    .stTextInput > div > div > input:focus {{
+        border-color: {PRIMARY_COLOR} !important;
+        outline: none !important;
+        box-shadow: 0 0 8px {PRIMARY_COLOR};
+    }}
+
+    /* Button styling */
     .stButton > button {{
-        background-color: {PRIMARY_COLOR};
-        color: white;
-        border-radius: 8px;
-        padding: 10px 20px;
+        background-color: {PRIMARY_COLOR} !important;
+        color: {TEXT_COLOR} !important;
+        border-radius: 12px !important;
+        padding: 12px 24px !important;
+        font-weight: 600;
+        font-size: 16px;
+        border: none;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
     }}
+    .stButton > button:hover {{
+        background-color: {SECONDARY_COLOR} !important;
+    }}
+
+    /* Chat message bubbles */
     .user-message {{
-        background-color: {SECONDARY_COLOR};
-        color: white;
-        padding: 10px;
-        border-radius: 8px;
-        margin-bottom: 5px;
+        background-color: {USER_BG_COLOR};
+        color: {TEXT_COLOR};
+        padding: 14px 20px;
+        border-radius: 20px 20px 0 20px;
+        margin: 6px 0 6px 30%;
+        max-width: 70%;
+        font-size: 16px;
+        line-height: 1.4;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.5);
         text-align: right;
+        word-wrap: break-word;
     }}
     .bot-message {{
-        background-color: white;
+        background-color: {BOT_BG_COLOR};
         color: {TEXT_COLOR};
-        padding: 10px;
-        border-radius: 8px;
-        margin-bottom: 5px;
+        padding: 14px 20px;
+        border-radius: 20px 20px 20px 0;
+        margin: 6px 30% 6px 0;
+        max-width: 70%;
+        font-size: 16px;
+        line-height: 1.4;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.5);
         text-align: left;
-        border: 1px solid #ddd;
+        word-wrap: break-word;
+    }}
+
+    /* Scrollable chat container */
+    .chat-container {{
+        max-height: 70vh;
+        overflow-y: auto;
+        padding-right: 10px;
+        scrollbar-width: thin;
+        scrollbar-color: {PRIMARY_COLOR} transparent;
+    }}
+    .chat-container::-webkit-scrollbar {{
+        width: 8px;
+    }}
+    .chat-container::-webkit-scrollbar-thumb {{
+        background-color: {PRIMARY_COLOR};
+        border-radius: 10px;
+    }}
+
+    /* Input container adjustments */
+    .input-container {{
+        margin-top: 20px;
+        display: flex;
+        gap: 12px;
     }}
     </style>
     """,
@@ -59,25 +119,26 @@ st.markdown(
 )
 
 # --- Chatbot Layout ---
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+
 chat_container = st.container()
 input_container = st.container()
 
 with chat_container:
-    if "chat_history" not in st.session_state:
-        st.session_state.chat_history = []
-
+    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
     for msg in st.session_state.chat_history:
         if msg["role"] == "user":
             st.markdown(f'<div class="user-message">{msg["content"]}</div>', unsafe_allow_html=True)
         else:
             st.markdown(f'<div class="bot-message">{msg["content"]}</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
 with input_container:
-    col1, col2 = st.columns([8, 2])  # Adjust column widths for input and button
-
-    with col1:
-        user_input = st.text_input("You:", placeholder="Type your message...")
-    with col2:
+    cols = st.columns([8, 2])
+    with cols[0]:
+        user_input = st.text_input("You:", placeholder="Type your message...", key="input")
+    with cols[1]:
         send_button = st.button("Send")
 
     # Function to call Gemini API
@@ -120,6 +181,4 @@ with input_container:
         with st.spinner("Thinking..."):
             reply = get_gemini_response(user_input, st.session_state.chat_history)
         st.session_state.chat_history.append({"role": "assistant", "content": reply})
-
-        # Force a rerun to update the chat display
-        st.rerun()
+        st.experimental_rerun()
