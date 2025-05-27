@@ -4,7 +4,6 @@ import requests
 # --- Read OpenRouter API key securely ---
 API_KEY = st.secrets["openrouter"]["api_key"]
 API_URL = "https://openrouter.ai/api/v1/chat/completions"
-
 HEADERS = {
     "Authorization": f"Bearer {API_KEY}",
     "Content-Type": "application/json"
@@ -16,10 +15,10 @@ SECONDARY_COLOR = "#C779D9"
 BACKGROUND_COLOR = "#1E003E"
 TEXT_COLOR = "#FFFFFF"
 
-# --- Streamlit Page Setup ---
+# --- Streamlit Setup ---
 st.set_page_config(page_title="Fraoula Chatbot - OpenRouter", layout="wide")
 
-# --- Custom UI Style ---
+# --- Styling ---
 st.markdown(f"""
     <style>
     .stApp {{
@@ -71,18 +70,18 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
-# --- Initialize Chat History ---
+# --- Chat History ---
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-# --- Show Chat History ---
+# --- Display Chat ---
 chat_container = st.container()
 with chat_container:
     for msg in st.session_state.chat_history:
-        css_class = "user-message" if msg["role"] == "user" else "bot-message"
-        st.markdown(f'<div class="{css_class}">{msg["content"]}</div>', unsafe_allow_html=True)
+        css = "user-message" if msg["role"] == "user" else "bot-message"
+        st.markdown(f'<div class="{css}">{msg["content"]}</div>', unsafe_allow_html=True)
 
-# --- Input Box ---
+# --- Input ---
 with st.form("chat_form", clear_on_submit=True):
     col1, col2 = st.columns([8, 2])
     with col1:
@@ -94,12 +93,12 @@ with st.form("chat_form", clear_on_submit=True):
         user_msg = user_input.strip()
         st.session_state.chat_history.append({"role": "user", "content": user_msg})
 
-        # Prepare chat messages for API
-        formatted_messages = [{"role": m["role"], "content": m["content"]} for m in st.session_state.chat_history]
+        # Build messages
+        formatted = [{"role": m["role"], "content": m["content"]} for m in st.session_state.chat_history]
 
         payload = {
-            "model": "meta-llama/llama-3-8b-instruct",  # You can change model here
-            "messages": formatted_messages,
+            "model": "meta-llama/llama-3-8b-instruct",  # You can change the model here
+            "messages": formatted,
             "max_tokens": 300,
             "temperature": 0.7
         }
@@ -113,3 +112,4 @@ with st.form("chat_form", clear_on_submit=True):
                 bot_reply = f"❌ Error: {e}"
 
         st.session_state.chat_history.append({"role": "assistant", "content": bot_reply})
+        st.rerun()  # ✅ updated to latest rerun function
