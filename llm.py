@@ -23,14 +23,12 @@ st.set_page_config(page_title="Chatbot with Gemini API", layout="wide", page_ico
 st.markdown(
     f"""
     <style>
-    /* Main background and text */
     .stApp {{
         background-color: {BACKGROUND_COLOR};
         color: {TEXT_COLOR};
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }}
 
-    /* Input box styling */
     .stTextInput > div > div > input {{
         background-color: {INPUT_BG_COLOR} !important;
         color: {TEXT_COLOR} !important;
@@ -46,7 +44,6 @@ st.markdown(
         box-shadow: 0 0 8px {PRIMARY_COLOR};
     }}
 
-    /* Send button styling */
     .stButton > button {{
         background-color: {PRIMARY_COLOR} !important;
         color: {TEXT_COLOR} !important;
@@ -62,7 +59,6 @@ st.markdown(
         background-color: {SECONDARY_COLOR} !important;
     }}
 
-    /* Chat message bubbles */
     .user-message {{
         background-color: {USER_BG_COLOR};
         color: {TEXT_COLOR};
@@ -90,7 +86,6 @@ st.markdown(
         word-wrap: break-word;
     }}
 
-    /* Scrollable chat container */
     .chat-container {{
         max-height: 70vh;
         overflow-y: auto;
@@ -110,7 +105,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Initialize chat history in session state
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
@@ -148,18 +142,7 @@ def get_gemini_response(message, history):
     except KeyError as e:
         return f"Error parsing Gemini response (missing key): {e} - Response: {response.text}"
 
-# Chat display container
-chat_container = st.container()
-with chat_container:
-    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-    for msg in st.session_state.chat_history:
-        if msg["role"] == "user":
-            st.markdown(f'<div class="user-message">{msg["content"]}</div>', unsafe_allow_html=True)
-        else:
-            st.markdown(f'<div class="bot-message">{msg["content"]}</div>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# Input form (handles Enter key submit)
+# --- INPUT FORM first ---
 with st.form(key="input_form", clear_on_submit=True):
     user_input = st.text_input("You:", placeholder="Type your message...")
     submit = st.form_submit_button("Send")
@@ -169,5 +152,14 @@ with st.form(key="input_form", clear_on_submit=True):
         with st.spinner("Thinking..."):
             reply = get_gemini_response(user_input, st.session_state.chat_history)
         st.session_state.chat_history.append({"role": "assistant", "content": reply})
-        # No need to call experimental_rerun; Streamlit will rerun automatically
 
+# --- THEN DISPLAY CHAT HISTORY BELOW FORM ---
+chat_container = st.container()
+with chat_container:
+    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+    for msg in st.session_state.chat_history:
+        if msg["role"] == "user":
+            st.markdown(f'<div class="user-message">{msg["content"]}</div>', unsafe_allow_html=True)
+        else:
+            st.markdown(f'<div class="bot-message">{msg["content"]}</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
