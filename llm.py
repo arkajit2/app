@@ -1,58 +1,49 @@
-import os
 import streamlit as st
-from huggingface_hub import hf_hub_download
-from llama_cpp import Llama
+import requests
 
-REPO_ID = "Arkajit1/Bloke"
-MODEL_FILENAME = "capybarahermes-2.5-mistral-7b.Q8_0.gguf"
-MODEL_DIR = "models"
-MODEL_PATH = os.path.join(MODEL_DIR, MODEL_FILENAME)
+# Load API key securely from Streamlit Secrets
+API_KEY = st.secrets["TOGETHER_API_KEY"]
 
-st.set_page_config(page_title="Fraoula LLaMA Chatbot", page_icon="🤖")
-st.title("🤖 Fraoula LLaMA Chatbot — Mistral 7B (Hermes Capybara 2.5)")
+# API and headers setup
+API_URL = "https://api.together.xyz/v1/chat/completions"
+HEADERS = {
+    "Authorization": f"Bearer {API_KEY}",
+    "Content-Type": "application/json"
+}
 
-@st.cache_resource
-def download_model():
-    os.makedirs(MODEL_DIR, exist_ok=True)
-    return hf_hub_download(
-        repo_id=REPO_ID,
-        filename=MODEL_FILENAME,
-        local_dir=MODEL_DIR,
-        local_dir_use_symlinks=False
-    )
+# Streamlit app UI
+st.set_page_config(page_title="Chatbot with Together.ai", layout="centered")
+st.title("🤖 Chatbot (Together.ai)")
 
-@st.cache_resource
-def load_model():
-    model_path = download_model()
-    return Llama(
-        model_path=model_path,
-        n_ctx=2048,
-        n_threads=2,
-        temperature=0.7,
-        top_p=0.9,
-        stop=["User:", "Bot:"]
-    )
-
-llm = load_model()
-
+# Initialize session state for chat history
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
+# User input
 user_input = st.text_input("You:", placeholder="Ask me anything...")
 
+# Call Together.ai API
+def get_response(message, history):
+    payload = {
+        "model": "mistralai/Mixtral-8x7B-Instruct-v0.1",  # Free & powerful
+        "messages": history + [{"role": "user", "content": message}],
+        "temperature": 0.7,
+        "max_tokens": 300
+    }
+
+    response = requests.post(API_URL, headers=HEADERS, json=payload)
+    if response.status_code == 200:
+        return response.json()["choices"][0]["message"]["content"]
+    else:
+        return f"Error: {response.status_code} - {response.text}"
+
+# Handle input and display chat
 if user_input:
     st.session_state.chat_history.append({"role": "user", "content": user_input})
-    prompt = ""
-    for chat in st.session_state.chat_history[-6:]:
-        speaker = "User" if chat["role"] == "user" else "Bot"
-        prompt += f"{speaker}: {chat['content']}\n"
-    prompt += "Bot:"
+    reply = get_response(user_input, st.session_state.chat_history)
+    st.session_state.chat_history.append({"role": "assistant", "content": reply})
 
-    bot_output = llm(prompt, max_tokens=512)
-    bot_response = bot_output["choices"][0]["text"].strip()
-
-    st.session_state.chat_history.append({"role": "bot", "content": bot_response})
-
-for chat in st.session_state.chat_history:
-    speaker = "**You:**" if chat["role"] == "user" else "**Bot:**"
-    st.markdown(f"{speaker} {chat['content']}")
+# Show conversation history
+for msg in st.session_state.chat_history:
+    role = "You" if msg["role"] == "user" else "Bot"
+    st.markdown(f"**{role}:** {msg['content']}")
